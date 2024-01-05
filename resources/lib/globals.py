@@ -22,6 +22,7 @@ try:
 except AttributeError:
     pass
 
+KODI_VERSION_MAJOR = int(xbmc.getInfoLabel('System.BuildVersion').split('.')[0])
 ADDON_NAME = 'Sling'
 ADDON_ID = 'plugin.video.sling'
 ADDON_URL = 'plugin://plugin.video.sling/'
@@ -40,8 +41,16 @@ TIMEOUT = 15
 USER_EMAIL = SETTINGS.getSetting('User_Email')
 USER_PASSWORD = SETTINGS.getSetting('User_Password')
 USE_SLINGER = SETTINGS.getSetting(id='Use_Slinger') == 'true'
-FIX_LIVE = SETTINGS.getSetting(id='Fix_Live') == 'true'
+SHOW_PROGRESS = SETTINGS.getSetting(id='Show_Progress') == 'true'
+SHOW_OFF_AIR = SETTINGS.getSetting(id='Show_Off_Air') == 'true'
+
 RUN_UPDATES = SETTINGS.getSetting(id='Run_Updates') == 'true'
+UPDATE_CHANNELS = SETTINGS.getSetting(id='Update_Channels') == 'true'
+UPDATE_GUIDE = SETTINGS.getSetting(id='Update_Guide') == 'true'
+UPDATE_ON_DEMAND = SETTINGS.getSetting(id='Update_On_Demand') == 'true'
+UPDATE_SHOWS = SETTINGS.getSetting(id='Update_Shows') == 'true'
+UPDATE_VOD = SETTINGS.getSetting(id='Update_VOD') == 'true'
+
 ACCESS_TOKEN = SETTINGS.getSetting('access_token')
 ACCESS_TOKEN_JWT = SETTINGS.getSetting('access_token_jwt')
 SUBSCRIBER_ID = SETTINGS.getSetting('subscriber_id')

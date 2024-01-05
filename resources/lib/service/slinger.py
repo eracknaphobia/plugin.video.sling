@@ -76,7 +76,7 @@ class Slinger(object):
             self.createDB()
         self.DB = sqlite3.connect(DB_PATH)
 
-        if self.DB is not None and RUN_UPDATES:
+        if self.DB is not None:
             self.main()
         else:
             log('Slinger __init__: Failed to initialize DB, closing.')
@@ -95,27 +95,28 @@ class Slinger(object):
         while not self.Monitor.abortRequested():
             timestamp = int(time.time())
 
-            self.checkTracker()
-            if (self.Channels_Updated + self.Channels_Interval) < timestamp:
-                if not self.inTasks("Update Channels")[0]:
-                    log('Channels need updated')
-                    self.Tasks[timestamp] = "Update Channels"
-            if (self.Guide_Updated + self.Guide_Interval) < timestamp:
-                if not self.inTasks("Update Guide")[0]:
-                    self.Tasks[timestamp + 1] = "Update Guide"
-            if (self.On_Demand_Updated + self.On_Demand_Interval) < timestamp:
-                if not self.inTasks("Update On Demand")[0]:
-                    self.Tasks[timestamp + 2] = "Update On Demand"
-            if (self.Shows_Updated + self.Shows_Interval) < timestamp:
-                if not self.inTasks("Update Shows")[0]:
-                    self.Tasks[timestamp + 3] = "Update Shows"
-            if (self.VOD_Updated + self.VOD_Interval) < timestamp:
-                if not self.inTasks("Update VOD")[0]:
-                    self.Tasks[timestamp + 4] = "Update VOD"
-            self.updateTracker(state="Idle", job="")
+            if RUN_UPDATES:
+                self.checkTracker()
+                if (self.Channels_Updated + self.Channels_Interval) < timestamp:
+                    if not self.inTasks("Update Channels")[0]:
+                        log('Channels need updated')
+                        self.Tasks[timestamp] = "Update Channels"
+                if (self.Guide_Updated + self.Guide_Interval) < timestamp:
+                    if not self.inTasks("Update Guide")[0]:
+                        self.Tasks[timestamp + 1] = "Update Guide"
+                if (self.On_Demand_Updated + self.On_Demand_Interval) < timestamp:
+                    if not self.inTasks("Update On Demand")[0]:
+                        self.Tasks[timestamp + 2] = "Update On Demand"
+                if (self.Shows_Updated + self.Shows_Interval) < timestamp:
+                    if not self.inTasks("Update Shows")[0]:
+                        self.Tasks[timestamp + 3] = "Update Shows"
+                if (self.VOD_Updated + self.VOD_Interval) < timestamp:
+                    if not self.inTasks("Update VOD")[0]:
+                        self.Tasks[timestamp + 4] = "Update VOD"
+                self.updateTracker(state="Idle", job="")
 
-            if len(self.Tasks):
-                self.doTasks()
+                if len(self.Tasks):
+                    self.doTasks()
             
             # Sleep for 30 minutes or exit on break
             count = 0
@@ -213,19 +214,19 @@ class Slinger(object):
         for id in sorted(self.Tasks.keys()):
             if id < 0:
                 self.Force_Update = True
-            if self.Tasks[id] == "Update Channels":
+            if self.Tasks[id] == "Update Channels" and UPDATE_CHANNELS:
                 self.updateTracker(state="Working", job="Updating Channels")
                 self.updateChannels()
-            if self.Tasks[id] == "Update Guide":
+            if self.Tasks[id] == "Update Guide" and UPDATE_GUIDE:
                 self.updateTracker(state="Working", job="Updating Guide")
                 self.updateGuide()
-            if self.Tasks[id] == "Update On Demand":
+            if self.Tasks[id] == "Update On Demand" and UPDATE_ON_DEMAND:
                 self.updateTracker(state="Working", job="Updating On Demand")
                 self.updateOnDemand()
-            if self.Tasks[id] == "Update Shows":
+            if self.Tasks[id] == "Update Shows" and UPDATE_SHOWS:
                 self.updateTracker(state="Working", job="Updating Shows")
                 self.updateShows()
-            if self.Tasks[id] == "Update VOD":
+            if self.Tasks[id] == "Update VOD" and UPDATE_VOD:
                 self.updateTracker(state="Working", job="Updating VOD")
                 self.updateVOD()
 
@@ -325,9 +326,10 @@ class Slinger(object):
                 for sub_pack in sub_packs:
                     if 'channels' in sub_pack:
                         channel_count = 0
-                        progress = xbmcgui.DialogProgressBG()
-                        progress.create('Sling TV')
-                        progress.update(0, 'Downloading Channel Info...')
+                        if SHOW_PROGRESS:
+                            progress = xbmcgui.DialogProgressBG()
+                            progress.create('Sling TV')
+                            progress.update(0, 'Downloading Channel Info...')
                         for channel in sub_pack['channels']:
                             if channel['channel_guid'] not in db_channels or not db_channels[channel['channel_guid']]['Hidden']:
                                 channels[channel['channel_guid']] = Channel(channel['channel_guid'], self.EndPoints, self.DB, update=True)
@@ -335,10 +337,12 @@ class Slinger(object):
                             else:
                                 log('Skipping channel %s\r\n%s' % (channel['network_affiliate_name'], json.dumps(db_channels[channel['channel_guid']], indent=4)))
                                 
-                            progress.update(int((float(channel_count) / len(sub_pack['channels'])) * 100), 'Downloading Channel Info: %s' % channel['network_affiliate_name'])
+                            if SHOW_PROGRESS:
+                                progress.update(int((float(channel_count) / len(sub_pack['channels'])) * 100), 'Downloading Channel Info: %s' % channel['network_affiliate_name'])
                             if self.Monitor.abortRequested():
                                 break
-                        progress.close()
+                        if SHOW_PROGRESS:
+                            progress.close()
                         
                         try:
                             query = "SELECT GUID FROM Channels WHERE Protected = 1"
@@ -410,9 +414,10 @@ class Slinger(object):
                 cursor.execute(query)
                 channels = cursor.fetchall()
                 if channels is not None and len(channels):
-                    progress = xbmcgui.DialogProgressBG()
-                    progress.create('Sling TV')
-                    progress.update(0, 'Downloading Day %i Guide Info...' % (day + 1))
+                    if SHOW_PROGRESS:
+                        progress = xbmcgui.DialogProgressBG()
+                        progress.create('Sling TV')
+                        progress.update(0, 'Downloading Day %i Guide Info...' % (day + 1))
                     channel_count = 0
 
                     start_str = time.strftime("%m/%d/%Y") + " 00:00:00"
@@ -425,7 +430,8 @@ class Slinger(object):
                         channel_guid = channel[0]
                         channel_poster = channel[1]
                         channel_name = channel[2]
-                        progress.update(int((float(channel_count) / len(channels)) * 100), 'Downloading Day %i Guide Info: %s' % (day + 1, channel_name))
+                        if SHOW_PROGRESS:
+                            progress.update(int((float(channel_count) / len(channels)) * 100), 'Downloading Day %i Guide Info: %s' % (day + 1, channel_name))
 
                         query = "SELECT Stop AS Guide_TS FROM Guide Where Channel_GUID = '%s' Order By Stop ASC LIMIT 1, 1" % channel_guid
                         cursor.execute(query)
@@ -462,20 +468,23 @@ class Slinger(object):
                         if self.Monitor.abortRequested():
                             break
                     session.close()
-                    progress.close()
+                    if SHOW_PROGRESS:
+                        progress.close()
                 result = True
             except sqlite3.Error as err:
                 error = 'updateGuide(): Failed to retrieve channels from DB, error => %s' % err
                 log(error)
                 self.Last_Error = error
                 result = False
-                progress.close()
+                if SHOW_PROGRESS:
+                    progress.close()
             except Exception as exc:
                 error = 'updateGuide(): Failed to retrieve channels from DB, exception => %s' % exc
                 log(error)
                 self.Last_Error = error
                 result = False
-                progress.close()
+                if SHOW_PROGRESS:
+                    progress.close()
 
         self.cleanGuide()
 
@@ -654,14 +663,16 @@ class Slinger(object):
             cursor.execute(query)
             shows = cursor.fetchall()
             if shows is not None and len(shows):
-                progress = xbmcgui.DialogProgressBG()
-                progress.create('Sling TV')
-                progress.update(0, 'Updating Shows...' )
+                if SHOW_PROGRESS:
+                    progress = xbmcgui.DialogProgressBG()
+                    progress.create('Sling TV')
+                    progress.update(0, 'Updating Shows...' )
                 show_count = 0
                 for show in shows:
                     show_guid = show[0]
                     show_name = show[1]
-                    progress.update(int((float(show_count) / len(shows)) * 100), 'Updating Shows: %s' % show_name)
+                    if SHOW_PROGRESS:
+                        progress.update(int((float(show_count) / len(shows)) * 100), 'Updating Shows: %s' % show_name)
                     query = "SELECT Last_Update AS Updated FROM Seasons WHERE Seasons.Show_GUID = '%s' " \
                             "ORDER BY Last_Update ASC LIMIT 1" % show_guid
                     cursor.execute(query)
@@ -681,7 +692,8 @@ class Slinger(object):
                     show_count += 1
                     if self.Monitor.abortRequested():
                         break
-                progress.close()
+                if SHOW_PROGRESS:
+                    progress.close()
             result = True
         
         except sqlite3.Error as err:
@@ -706,14 +718,16 @@ class Slinger(object):
             cursor.execute(query)
             channels = cursor.fetchall()
             if channels is not None and len(channels):
-                progress = xbmcgui.DialogProgressBG()
-                progress.create('Sling TV')
-                progress.update(0, 'Updating On Demand...' )
+                if SHOW_PROGRESS:
+                    progress = xbmcgui.DialogProgressBG()
+                    progress.create('Sling TV')
+                    progress.update(0, 'Updating On Demand...' )
                 channel_count = 0
                 for channel in channels:
                     channel_guid = channel[0]
                     channel_name = channel[1]
-                    progress.update(int((float(channel_count) / len(channels)) * 100), 'Updating On Demand: %s' % channel_name)
+                    if SHOW_PROGRESS:
+                        progress.update(int((float(channel_count) / len(channels)) * 100), 'Updating On Demand: %s' % channel_name)
                     query = "SELECT Last_Update AS Updated FROM On_Demand_Folders Folders WHERE Folders.Channel_GUID = '%s' " \
                             "ORDER BY Last_Update ASC LIMIT 1" % channel_guid
                     cursor.execute(query)
@@ -741,7 +755,8 @@ class Slinger(object):
                 query = "DELETE FROM On_Demand_Folders WHERE Expiration < %i" % timestamp
                 cursor.execute(query)
                 self.DB.commit()
-                progress.close()
+                if SHOW_PROGRESS:
+                    progress.close()
             result = True
         except sqlite3.Error as err:
             error = 'updateOnDemand(): Failed to retrieve On Demand Channels from DB, error => %s' % err
