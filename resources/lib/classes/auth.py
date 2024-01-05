@@ -189,7 +189,8 @@ class Auth(object):
         payload = "email=%s&password=%s&device_guid=%s" % (requests.utils.quote(
             USER_EMAIL), requests.utils.quote(USER_PASSWORD), requests.utils.quote(DEVICE_ID))
         account_headers = HEADERS
-        account_headers['Content-Type'] = 'application/x-www-form-urlencoded'
+        account_headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
+        account_headers['User-Agent'] = ANDROID_USER_AGENT
         auth = OAuth1(self.OCK, self.OCS)
         response = requests.put('%s/v3/xauth/access_token.json' %
                                 endPoints['ums_url'], headers=account_headers, data=payload, auth=auth, verify=VERIFY)
@@ -250,7 +251,7 @@ class Auth(object):
             log('auth::logIn() =>\r%s' % json.dumps(response_json['response_context'], indent=4))
             if 'response' in response_json:
                 account = response_json['response']
-                if account['account_status'] == 'active':
+                if 'guid' in account:
                     SUBSCRIBER_ID = account['guid']
                     SETTINGS.setSetting('subscriber_id', SUBSCRIBER_ID)
 
