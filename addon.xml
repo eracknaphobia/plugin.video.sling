@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.video.sling" version="2024.01.05" name="Sling" provider-name="d21spike, eracknaphobia">
+<addon id="plugin.video.sling" version="2024.03.30" name="Sling" provider-name="d21spike, eracknaphobia">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" />
@@ -20,7 +20,7 @@
         <source>https://github.com/d21spike/plugin.video.sling</source>
         <website>https://www.Slingtv.com</website>
         <news>
-            - Fixed Login
+            - Fixed error caused when background image is missing
         </news>
         <forum>https://forum.kodi.tv/showthread.php?tid=351048</forum>
         <assets>
